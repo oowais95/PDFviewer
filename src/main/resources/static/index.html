@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --panel: #1a2332;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --accent: #3b82f6;
+            --border: #30363d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            padding: 1rem 1.25rem;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+        header h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+        .meta {
+            font-size: 0.8rem;
+            color: var(--muted);
+            word-break: break-all;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+            padding: 1rem 1.25rem;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            min-width: 12rem;
+            flex: 1;
+        }
+        input[type="text"] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 0.55rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover { filter: brightness(1.08); }
+        .viewer-wrap {
+            flex: 1;
+            min-height: 60vh;
+            padding: 0;
+            background: #000;
+        }
+        iframe {
+            width: 100%;
+            height: calc(100vh - 200px);
+            min-height: 480px;
+            border: none;
+        }
+        .hint {
+            padding: 0 1.25rem 1rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>PDF Viewer</h1>
+        <div class="meta" id="baseUrlLine">Loading base URL…</div>
+    </header>
+    <form class="toolbar" id="form" action="#" method="get">
+        <label>
+            Server directory (<code>dir</code>)
+            <input type="text" name="dir" id="dir" placeholder="e.g. C:\Documents\pdfs" autocomplete="off">
+        </label>
+        <label>
+            File name (<code>name</code>)
+            <input type="text" name="name" id="name" placeholder="e.g. report.pdf" autocomplete="off">
+        </label>
+        <button type="submit">Open PDF</button>
+    </form>
+    <p class="hint">
+        The PDF is streamed by <code>/open-pdf?dir=…&amp;name=…</code>. Set optional <code>pdf.root</code> in
+        <code>application.properties</code> (or env) so only paths under that folder are allowed.
+    </p>
+    <div class="viewer-wrap">
+        <iframe id="viewer" title="PDF" src="about:blank"></iframe>
+    </div>
+    <script>
+        (function () {
+            var baseEl = document.getElementById('baseUrlLine');
+            var iframe = document.getElementById('viewer');
+            var form = document.getElementById('form');
+
+            fetch(new URL('base-url', window.location.href).href)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    baseEl.textContent = 'Base URL: ' + (data.baseUrl || '');
+                })
+                .catch(function () {
+                    baseEl.textContent = 'Could not load /base-url';
+                });
+
+            function buildOpenPdfUrl() {
+                var dir = document.getElementById('dir').value.trim();
+                var name = document.getElementById('name').value.trim();
+                var q = new URLSearchParams();
+                if (dir) q.set('dir', dir);
+                if (name) q.set('name', name);
+                return 'open-pdf?' + q.toString();
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                iframe.src = buildOpenPdfUrl();
+            });
+
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('dir') || params.get('name')) {
+                document.getElementById('dir').value = params.get('dir') || '';
+                document.getElementById('name').value = params.get('name') || '';
+                iframe.src = buildOpenPdfUrl();
+            }
+        })();
+    </script>
+</body>
+</html>
